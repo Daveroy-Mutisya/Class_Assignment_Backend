@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "./pyjwt_lib",
+        "./server/pyjwt/jwt/api_",
+        "./server/pyjwt/jwt/api_"
+    ]
+}
