@@ -1,19 +1,19 @@
 from functools import wraps
 from uuid import uuid4
-from flask import Flask, request, jsonify, render_template, session, redirect, make_response
-from datetime import datetime, timedelta
-from models import db, Task, DueDate, Subtask, User
+from flask import Flask, request, jsonify, session, redirect
+from flask_sqlalchemy import SQLAlchemy
+from models import db, Tasks, DueDate, Subtask, User
 from pyjwt_lib import jwt
-
-
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '886738700dab460b90091e196b99dfa5'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'  # Adjust the database URI as needed
-db.init_app(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+db.init_app(app)  # Initialize db with Flask app
 
-with app.app_context():
-    db.create_all()
+# Database creation and initialization
+# with app.app_context():
+#     db.create_all()
+
 
 # Token required decorator
 def token_required(func):
@@ -32,22 +32,22 @@ def token_required(func):
 
 @app.route('/', methods=["GET"])
 def index():
-    return render_template("index.js")
+    return f"Hello World! The server is running."
 
 # Registration route
 @app.route("/register", methods=["POST"])
 def register():
     username = request.json.get("username")
     password = request.json.get("password")
-    email = request.json.get("email")  # Add email requirement
-    if not username or not password or not email:  # Check for missing fields
+    email = request.json.get("email")  
+    if not username or not password or not email:  
         return jsonify({"message": "Missing username, email, and/or password"}), 400
     
     user = User.query.filter_by(username=username).first()
     if user:
         return jsonify({"message": "User already exists."}), 400
 
-    new_user = User(username=username, email=email, public_id=str(uuid4()))  # Include email when creating user
+    new_user = User(username=username, email=email, public_id=str(uuid4()))  
     new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
@@ -81,7 +81,7 @@ def create_task():
     description = data.get('description')
     due_date = data.get('due_date')
 
-    new_task = Task(title=title, description=description)
+    new_task = Tasks(title=title, description=description)
     if due_date:
         new_due_date = DueDate(due_date=due_date)
         new_task.due_date = new_due_date
@@ -94,14 +94,15 @@ def create_task():
 # Route to get all tasks
 @app.route('/tasks', methods=['GET'])
 def get_all_tasks():
-    tasks = Task.query.all()
+    tasks = Tasks.query.all()
     task_list = [{'id': task.id, 'title': task.title, 'description': task.description} for task in tasks]
     return jsonify(task_list)
 
 # Route to get a specific task by ID
+
 @app.route('/tasks/<int:task_id>', methods=['GET'])
 def get_task(task_id):
-    task = Task.query.get_or_404(task_id)
+    task = Tasks.query.filter_by(id=task_id).first_or_404()
     task_data = {
         'id': task.id,
         'title': task.title,
@@ -110,11 +111,27 @@ def get_task(task_id):
     }
     return jsonify(task_data)
 
+
+@app.route("/tasks/<string:task_name>", methods =['GET'])
+def search_by_name(task_name):
+    result = Tasks.search_by_name(task_name)
+    output = []
+    
+    # If the search returned multiple entries, iterate through them and add to list
+    if len(result)>1:
+        for item in result:
+            output.append({"ID":item[0], "Name":item[1]})  
+    elif result:
+        # If only one entry was found, just send that back as a dictionary instead of a list
+        output.append(output[0])
+        
+    return jsonify(output)
+
 # Route to update a task
 @app.route('/tasks/<int:task_id>', methods=['PUT'])
 @token_required
 def update_task(task_id):
-    task = Task.query.get_or_404(task_id)
+    task = task.query.get_or_404(task_id)
     data = request.get_json()
     task.title = data.get('title', task.title)
     task.description = data.get('description', task.description)
@@ -133,7 +150,7 @@ def update_task(task_id):
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 @token_required
 def delete_task(task_id):
-    task = Task.query.get_or_404(task_id)
+    task = task.query.get_or_404(task_id)
     db.session.delete(task)
     db.session.commit()
     return jsonify({'message': 'Task deleted successfully'})
@@ -142,7 +159,7 @@ def delete_task(task_id):
 @app.route('/tasks/<int:task_id>/subtasks', methods=['POST'])
 @token_required
 def create_subtask(task_id):
-    task = Task.query.get_or_404(task_id)
+    task = task.query.get_or_404(task_id)
     data = request.get_json()
     title = data.get('title')
     # Check if the task exists
@@ -154,10 +171,11 @@ def create_subtask(task_id):
     db.session.commit()
     return jsonify({'message': 'Subtask created successfully'}), 201
 
+
 # Route to get all subtasks for a task
 @app.route('/tasks/<int:task_id>/subtasks', methods=['GET'])
 def get_all_subtasks(task_id):
-    task = Task.query.get_or_404(task_id)
+    task = Tasks.query.get_or_404(task_id)
     # Check if the task exists
     if not task:
         return jsonify({'error': 'Task not found'}), 404
