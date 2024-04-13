@@ -183,6 +183,7 @@ def get_all_subtasks(task_id):
     subtask_list = [{'id': subtask.id, 'title': subtask.title} for subtask in subtasks]
     return jsonify(subtask_list)
 
+
 # Route to get a specific subtask by ID
 @app.route('/subtasks/<int:subtask_id>', methods=['GET'])
 def get_subtask(subtask_id):
