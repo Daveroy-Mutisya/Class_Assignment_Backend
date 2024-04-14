@@ -5,14 +5,15 @@ from flask_sqlalchemy import SQLAlchemy
 from models import db, Tasks, DueDate, Subtask, User
 from pyjwt_lib import jwt
 
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '886738700dab460b90091e196b99dfa5'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 db.init_app(app)  # Initialize db with Flask app
 
 # Database creation and initialization
-# with app.app_context():
-#     db.create_all()
+with app.app_context():
+    db.create_all()
 
 
 # Token required decorator
@@ -65,7 +66,8 @@ def login():
         return jsonify({"message": "Username or Password incorrect"})
 
     token = jwt.encode({'public_id': user.public_id}, app.config['SECRET_KEY'], algorithm='HS256')
-    return jsonify({"token": token.decode('utf-8') })
+    return jsonify({"token": token})
+
 
 @app.route('/logout')
 def logout():

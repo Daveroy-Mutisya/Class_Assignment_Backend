@@ -1,8 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from uuid import uuid4
-from flask import Flask
+from werkzeug.security import generate_password_hash,check_password_hash
 
-app = Flask(__name__)
 db = SQLAlchemy()
 
 def get_uuid(length=16):
@@ -10,6 +9,7 @@ def get_uuid(length=16):
 
 # Define the models
 class Tasks(db.Model):
+    __tablename__ = 'tasks'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
@@ -18,11 +18,13 @@ class Tasks(db.Model):
     assignees = db.relationship('User', secondary='task_assignees', backref='tasks', lazy='dynamic')
 
 class DueDate(db.Model):
+    
     id = db.Column(db.Integer, primary_key=True)
     due_date = db.Column(db.Date, nullable=False)
     task = db.relationship('Tasks', backref='due_date', uselist=False)
 
 class Subtask(db.Model):
+    __tablename__ = 'subtasks'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'))
@@ -33,9 +35,18 @@ task_assignees = db.Table('task_assignees',
 )
 
 class User(db.Model):
+    __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), nullable=False, unique=True)
     email = db.Column(db.String(120), nullable=False, unique=True)
-    password = db.Column(db.String(64))  
+    password = db.Column(db.String(64))
+    public_id = db.Column(db.String(36), unique=True, nullable=False, default=str(uuid4()))
+
+    def set_password(self, password):
+      self.password = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
+
 
 

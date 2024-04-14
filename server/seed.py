@@ -53,16 +53,24 @@ def seed_data():
         db.session.commit()
         print("Subtasks seeded successfully")
 
+        from uuid import uuid4
+
+
         print("Seeding Users")
 
         users_data = [
-            {"username": "Dave", "email": "user1@example.com", "password": "456"},
-            {"username": "Roy", "email": "user2@example.com", "password": "123"}
-        ]
+    {"username": "Roy", "email": "user2@example.com", "password": "123"}
+    ]
 
         for user_data in users_data:
-            user = User(username=user_data['username'], email=user_data['email'], password=user_data['password'])
-            db.session.add(user)
+          public_id = str(uuid4())  # Generate a new UUID for each user
+        user = User(
+        username=user_data['username'],
+        email=user_data['email'],
+        password=user_data['password'],
+        public_id=public_id  # Include the public_id field
+        )
+        db.session.add(user)
 
         db.session.commit()
         print("Users seeded successfully")
