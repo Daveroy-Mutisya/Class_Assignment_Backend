@@ -12,8 +12,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 db.init_app(app)  # Initialize db with Flask app
 
 # Database creation and initialization
-with app.app_context():
-    db.create_all()
+# with app.app_context():
+#     db.create_all()
 
 
 # Token required decorator
@@ -97,8 +97,11 @@ def create_task():
 @app.route('/tasks', methods=['GET'])
 def get_all_tasks():
     tasks = Tasks.query.all()
+    if not tasks:
+        return jsonify({'error': 'No tasks found'}), 404
     task_list = [{'id': task.id, 'title': task.title, 'description': task.description} for task in tasks]
     return jsonify(task_list)
+
 
 # Route to get a specific task by ID
 
